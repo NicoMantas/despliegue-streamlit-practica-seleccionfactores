@@ -14,206 +14,624 @@ Original file is located at
 - Aplicamos el modelo para la predicción
 """
 
-#Cargamos librerías principales
-
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-
-#Cargamos el modelo
-import pickle
-filename = 'modelo-reg-practica.pkl'
-modelo, min_max_scaler, variables = pickle.load(open(filename, 'rb'))
-#modelo
-
-# Display the variables expected by the model to help with data adaptation
-print("Variables expected by the models:")
-for var in variables:
-    print(var)
-
-#Ya mis datos no sera por archivo sino que por formulario
-#Cargamos los datos futuros
-#data = pd.read_csv("videojuegos-datosFuturos.csv")
-#data.head()
-
 import streamlit as st
 import pandas as pd
-
-st.title('Predicción de PUNT_GLOBAL para estudiantes')
-
-# User choice for input method
-input_method = st.radio("Seleccione el método de entrada de datos:", ('Ingreso Manual', 'Subir Archivo CSV'))
-
-if input_method == 'Ingreso Manual':
-    st.header('Ingreso Manual de Datos')
-    PERIODO = st.number_input('PERIODO', min_value=2010, max_value=2024, value=2023, step=1)
-    EDAD = st.slider('EDAD', min_value=14, max_value=52, value=20, step=1)
-    COLE_AREA_UBICACION = st.selectbox('COLE_AREA_UBICACION', ['RURAL', 'URBANA'])
-    COLE_BILINGUE = st.selectbox('COLE_BILINGUE', ['S', 'N'])
-    COLE_CARACTER = st.selectbox('COLE_CARACTER', ['ACADÉMICO', 'NO APLICA', 'TÉCNICO', 'TÉCNICO/ACADÉMICO'])
-    COLE_JORNADA = st.selectbox('COLE_JORNADA', ['COMPLETA', 'MAÑANA', 'NOCHE', 'SABATINA', 'TARDE', 'UNICA'])
-    COLE_MCPIO_UBICACION = st.text_input('COLE_MCPIO_UBICACION', value='BOGOTÁ')
-    COLE_NATURALEZA = st.selectbox('COLE_NATURALEZA', ['OFICIAL', 'NO OFICIAL'])
-    COLE_SEDE_PRINCIPAL = st.selectbox('COLE_SEDE_PRINCIPAL', ['S', 'N'])
-    ESTU_DEPTO_RESIDE = st.text_input('ESTU_DEPTO_RESIDE', value='CUNDINAMARCA')
-    ESTU_GENERO = st.selectbox('ESTU_GENERO', ['M', 'F'])
-    ESTU_MCPIO_RESIDE = st.text_input('ESTU_MCPIO_RESIDE', value='BOGOTÁ, D.C.')
-    ESTU_NACIONALIDAD = st.text_input('ESTU_NACIONALIDAD', value='COLOMBIA')
-    ESTU_PAIS_RESIDE = st.text_input('ESTU_PAIS_RESIDE', value='COLOMBIA')
-    FAMI_CUARTOSHOGAR = st.selectbox('FAMI_CUARTOSHOGAR', ['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco o más'])
-    FAMI_EDUCACIONMADRE = st.text_input('FAMI_EDUCACIONMADRE', value='Ninguno')
-    FAMI_EDUCACIONPADRE = st.text_input('FAMI_EDUCACIONPADRE', value='Ninguno')
-    FAMI_ESTRATOVIVIENDA = st.selectbox('FAMI_ESTRATOVIVIENDA', ['Estrato 1', 'Estrato 2', 'Estrato 3', 'Estrato 4', 'Estrato 5', 'Estrato 6', 'Sin Estrato'])
-    FAMI_PERSONASHOGAR = st.number_input('FAMI_PERSONASHOGAR', min_value=1, max_value=10, value=3, step=1)
-    FAMI_TIENEAUTOMOVIL = st.selectbox('FAMI_TIENEAUTOMOVIL', ['Si', 'No'])
-    FAMI_TIENECOMPUTADOR = st.selectbox('FAMI_TIENECOMPUTADOR', ['Si', 'No'])
-    FAMI_TIENEINTERNET = st.selectbox('FAMI_TIENEINTERNET', ['Si', 'No'])
-    FAMI_TIENELAVADORA = st.selectbox('FAMI_TIENELAVADORA', ['Si', 'No'])
-
-    datos = [[PERIODO, EDAD, COLE_AREA_UBICACION, COLE_BILINGUE, COLE_CARACTER,
-              COLE_JORNADA, COLE_MCPIO_UBICACION, COLE_NATURALEZA, COLE_SEDE_PRINCIPAL,
-              ESTU_DEPTO_RESIDE, ESTU_GENERO, ESTU_MCPIO_RESIDE, ESTU_NACIONALIDAD,
-              ESTU_PAIS_RESIDE, FAMI_CUARTOSHOGAR, FAMI_EDUCACIONMADRE, FAMI_EDUCACIONPADRE,
-              FAMI_ESTRATOVIVIENDA, FAMI_PERSONASHOGAR, FAMI_TIENEAUTOMOVIL,
-              FAMI_TIENECOMPUTADOR, FAMI_TIENEINTERNET, FAMI_TIENELAVADORA]]
-
-    columns = ['PERIODO', 'EDAD', 'COLE_AREA_UBICACION', 'COLE_BILINGUE', 'COLE_CARACTER',
-               'COLE_JORNADA', 'COLE_MCPIO_UBICACION', 'COLE_NATURALEZA', 'COLE_SEDE_PRINCIPAL',
-               'ESTU_DEPTO_RESIDE', 'ESTU_GENERO', 'ESTU_MCPIO_RESIDE', 'ESTU_NACIONALIDAD',
-               'ESTU_PAIS_RESIDE', 'FAMI_CUARTOSHOGAR', 'FAMI_EDUCACIONMADRE', 'FAMI_EDUCACIONPADRE',
-               'FAMI_ESTRATOVIVIENDA', 'FAMI_PERSONASHOGAR', 'FAMI_TIENEAUTOMOVIL',
-               'FAMI_TIENECOMPUTADOR', 'FAMI_TIENEINTERNET', 'FAMI_TIENELAVADORA']
-
-    data = pd.DataFrame(datos, columns=columns)
-
-elif input_method == 'Subir Archivo CSV':
-    st.header('Subir Archivo CSV')
-    uploaded_file = st.file_uploader("Arrastra y suelta tu archivo CSV aquí o haz clic para buscar", type="csv")
-    if uploaded_file is not None:
-        data = pd.read_csv(uploaded_file)
-        st.write("Vista previa de los datos cargados:")
-        st.dataframe(data.head())
-    else:
-        data = pd.DataFrame() # Empty DataFrame if no file uploaded
-
-#Se realiza la preparación de datos
-
-if data.empty:
-    st.warning("No hay datos para procesar. Por favor, ingrese datos manualmente o suba un archivo CSV.")
-    data_preparada = pd.DataFrame() # Ensure data_preparada is empty if no data
-else:
-    data_preparada = data.copy()
-
-    #En despliegue drop_first= False
-    categorical_cols = [
-        'COLE_AREA_UBICACION', 'COLE_BILINGUE', 'COLE_CARACTER', 'COLE_JORNADA',
-        'COLE_MCPIO_UBICACION', 'COLE_NATURALEZA', 'COLE_SEDE_PRINCIPAL',
-        'ESTU_DEPTO_RESIDE', 'ESTU_GENERO', 'ESTU_MCPIO_RESIDE',
-        'ESTU_NACIONALIDAD', 'ESTU_PAIS_RESIDE', 'FAMI_CUARTOSHOGAR',
-        'FAMI_EDUCACIONMADRE', 'FAMI_EDUCACIONPADRE', 'FAMI_ESTRATOVIVIENDA',
-        'FAMI_TIENEAUTOMOVIL', 'FAMI_TIENECOMPUTADOR', 'FAMI_TIENEINTERNET', 'FAMI_TIENELAVADORA'
-    ]
-
-    # Filter categorical_cols to only include those actually present in data_preparada
-    cols_to_get_dummies = [col for col in categorical_cols if col in data_preparada.columns]
-
-    if len(cols_to_get_dummies) < len(categorical_cols):
-        missing_cols = set(categorical_cols) - set(cols_to_get_dummies)
-        st.error(f"Error en la preparación de datos: Las siguientes columnas categóricas esperadas no se encontraron en los datos de entrada: {missing_cols}. Asegúrese de que los nombres de las columnas en su CSV (si aplica) o en la entrada manual coinciden con el modelo.")
-    else:
-        st.info("Todas las columnas categóricas necesarias están presentes para el procesamiento.")
-
-    data_preparada = pd.get_dummies(data_preparada, columns=cols_to_get_dummies, drop_first=False, dtype=int)
-
-#Se adicionan las columnas faltantes
-if not data_preparada.empty:
-    data_preparada = data_preparada.reindex(columns=variables, fill_value=0)
-    # st.write("Datos preparados para el modelo:")
-    # st.dataframe(data_preparada.head()) # Optional: display prepared data for debugging
-else:
-    st.warning("No se puede reindexar: la trama de datos preparada está vacía.")
-
-#Se normaliza la edad para predecir con Knn, Red, SVM, Reg
-#En los despliegues no se llama fit
-# La columna 'PUNT_GLOBAL' no debe estar presente en los datos de entrada para la predicción.
-# Si el modelo predice valores escalados, el min_max_scaler se debe usar para el inverse_transform de las predicciones.
-# data_preparada[['PUNT_GLOBAL']]= min_max_scaler.transform(data_preparada[['PUNT_GLOBAL']])
-# data_preparada.head()
-
-"""# **Predicciones**"""
-
-#Hacemos la predicción con el modelo
-if not data_preparada.empty:
-    try:
-        Y_pred = modelo.predict(data_preparada)
-        st.subheader("Predicciones Generadas:")
-        # Optional: Display raw predictions
-        # st.write(Y_pred)
-    except Exception as e:
-        st.error(f"Error al realizar la predicción: {e}")
-        Y_pred = None # Ensure Y_pred is set to None on error
-else:
-    st.warning("No se puede realizar la predicción: la trama de datos preparada está vacía.")
-    Y_pred = None # Ensure Y_pred is defined even if empty
-
-if not data.empty and Y_pred is not None and len(Y_pred) == len(data):
-    data['Prediccion'] = Y_pred
-    st.subheader("Datos de entrada con Predicciones:")
-    st.dataframe(data)
-else:
-    if data.empty:
-        st.warning("No hay datos originales para adjuntar predicciones.")
-    elif Y_pred is None:
-        st.warning("No se generaron predicciones.")
-    else:
-        st.warning("Error: El número de predicciones no coincide con el número de filas de datos de entrada.")
-
-# Opciones de descarga y visualización de predicciones
+import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
+import sys # Added for st.stop()
 
-if not data.empty and 'Prediccion' in data.columns:
-    st.subheader("Descargar Predicciones")
-    csv = data.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="Descargar Predicciones como CSV",
-        data=csv,
-        file_name='predicciones_PUNT_GLOBAL.csv',
-        mime='text/csv',
+def setup_page():
+    st.set_page_config(
+        page_title="Predicción PUNT_GLOBAL",
+        page_icon="🎓",
+        layout="wide",
+        initial_sidebar_state="expanded",
     )
 
-    # --- Visualización de Predicciones ---
-    st.subheader("Visualización de Predicciones")
+    st.markdown(
+        """ <style>
+        /* Fondo general */
+        .stApp { background-color: #f5f7fb; }
+        /* Contenedor principal */
+        .main .block-container { padding-top: 2rem; padding-bottom: 3rem; max-width: 1400px; }
+        /* Título principal */
+        .main-title { font-size: 42px; font-weight: 800; color: #172554; margin-bottom: 0; }
+        .subtitle { font-size: 17px; color: #64748b; margin-top: 5px; margin-bottom: 25px; }
+        /* Tarjetas */
+        .metric-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0px 4px 15px rgba(15, 23, 42, 0.08); border: 1px solid #e2e8f0; text-align: center; min-height: 130px; }
+        .metric-title { color: #64748b; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+        .metric-value { color: #172554; font-size: 30px; font-weight: 800; }
+        /* Secciones */
+        .section-title { font-size: 25px; font-weight: 750; color: #172554; margin-top: 15px; margin-bottom: 15px; }
+        /* Caja informativa */
+        .info-box { background: #eff6ff; border-left: 5px solid #2563eb; padding: 15px 20px; border-radius: 10px; color: #1e3a8a; margin-bottom: 20px; }
+        /* Caja de predicción */
+        .prediction-box { background: linear-gradient( 135deg, #172554, #2563eb ); color: white; border-radius: 18px; padding: 30px; text-align: center; margin-top: 20px; margin-bottom: 25px; box-shadow: 0px 8px 25px rgba(37, 99, 235, 0.25); }
+        .prediction-label { font-size: 16px; opacity: 0.85; }
+        .prediction-value { font-size: 52px; font-weight: 900; margin: 5px 0; }
+        .prediction-description { font-size: 14px; opacity: 0.85; }
+        /* Sidebar */
+        section[data-testid="stSidebar"] { background-color: #172554; }
+        section[data-testid="stSidebar"] * { color: white; }
+        /* Botones */
+        .stDownloadButton button { border-radius: 10px; font-weight: 600; }
+        /* Expander */
+        .streamlit-expanderHeader { font-weight: 650; }
+        </style> """,
+        unsafe_allow_html=True,
+    )
 
-    # Histograma de las predicciones
-    fig1, ax1 = plt.subplots(figsize=(10, 6))
-    sns.histplot(data['Prediccion'], kde=True, ax=ax1)
-    ax1.set_title('Distribución de las Predicciones de PUNT_GLOBAL')
-    ax1.set_xlabel('PUNT_GLOBAL Predicho')
-    ax1.set_ylabel('Frecuencia')
-    st.pyplot(fig1)
+setup_page()
 
-    # Si hay suficientes datos y variables categóricas, se pueden añadir más gráficos
-    if len(data) > 1 and 'FAMI_ESTRATOVIVIENDA' in data.columns:
-        fig2, ax2 = plt.subplots(figsize=(10, 6))
-        sns.boxplot(x='FAMI_ESTRATOVIVIENDA', y='Prediccion', data=data, ax=ax2)
-        ax2.set_title('Predicción de PUNT_GLOBAL por Estrato de Vivienda')
-        ax2.set_xlabel('Estrato de Vivienda')
-        ax2.set_ylabel('PUNT_GLOBAL Predicho')
-        plt.xticks(rotation=45)
-        st.pyplot(fig2)
+def load_model():
+    filename = "modelo-reg-practica.pkl"
+    try:
+        with open(filename, "rb") as file:
+            modelo, min_max_scaler, variables = pickle.load(file)
+        return modelo, min_max_scaler, variables
+    except FileNotFoundError:
+        st.error(
+            "❌ No se encontró el archivo 'modelo-reg-practica.pkl'. "
+            "Asegúrate de que esté en la misma carpeta que app.py."
+        )
+        st.stop()
+    except Exception as e:
+        st.error(f"❌ Error al cargar el modelo: {e}")
+        st.stop()
 
-    if len(data) > 1 and 'COLE_NATURALEZA' in data.columns:
-        fig3, ax3 = plt.subplots(figsize=(10, 6))
-        sns.barplot(x='COLE_NATURALEZA', y='Prediccion', data=data, ax=ax3)
-        ax3.set_title('Predicción de PUNT_GLOBAL por Naturaleza del Colegio')
-        ax3.set_xlabel('Naturaleza del Colegio')
-        ax3.set_ylabel('PUNT_GLOBAL Predicho')
-        st.pyplot(fig3)
+modelo, min_max_scaler, variables = load_model()
 
+def render_sidebar(variables):
+    with st.sidebar:
+        st.markdown("## 🎓 PUNT_GLOBAL")
+        st.markdown(
+            """
+            <div style="
+                background: rgba(255,255,255,0.10);
+                padding: 15px;
+                border-radius: 12px;
+                margin-bottom: 20px;
+            ">
+            <b>Modelo predictivo</b><br>
+            Predicción del puntaje global de estudiantes.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("### 📌 Información")
+        st.write("**Variable objetivo:**")
+        st.code("PUNT_GLOBAL")
+        st.write("**Modelo:**")
+        st.code("Regresión")
+        st.write("**MAE - Validación cruzada:**")
+        st.code("29.14687")
+        st.divider()
+        st.markdown("### 📊 Variables")
+        st.write(f"El modelo utiliza **{len(variables)} variables** después de la preparación de datos.")
+        st.divider()
+        st.caption("Proyecto académico de Machine Learning")
+
+render_sidebar(variables)
+
+def render_header(variables):
+    st.markdown(
+        '<div class="main-title">🎓 Predicción de PUNT_GLOBAL</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="subtitle">'
+        'Sistema de predicción del puntaje global de estudiantes mediante Machine Learning'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown(
+            """
+            <div class="metric-card">
+            <div class="metric-title">🎯 Variable objetivo</div>
+            <div class="metric-value">PUNT_GLOBAL</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col2:
+        st.markdown(
+            f"""
+            <div class="metric-card">
+            <div class="metric-title">📊 Variables del modelo</div>
+            <div class="metric-value">{len(variables)}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col3:
+        st.markdown(
+            """
+            <div class="metric-card">
+            <div class="metric-title">📉 MAE</div>
+            <div class="metric-value">29.15</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with col4:
+        st.markdown(
+            """
+            <div class="metric-card">
+            <div class="metric-title">🤖 Machine Learning</div>
+            <div class="metric-value">Activo</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.markdown(
+        """
+        <div class="info-box">
+        <b>💡 ¿Cómo funciona?</b><br>
+        Ingresa la información del estudiante manualmente o carga un archivo CSV. El sistema prepara automáticamente los datos, aplica la misma estructura utilizada durante el entrenamiento y genera una predicción del <b>PUNT_GLOBAL</b>.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+render_header(variables)
+
+
+
+
+
+def select_input_method():
+    st.markdown(
+        '<div class="section-title">⚙️ Configuración de entrada</div>',
+        unsafe_allow_html=True,
+    )
+    input_method = st.radio(
+        "Selecciona el método de entrada para los datos:",
+        ("✏️ Ingreso Manual", "📂 Subir Archivo CSV"),
+        horizontal=True,
+    )
+    return input_method
+
+input_method = select_input_method()
+
+def manual_input_form():
+    st.markdown("### 👤 Información del estudiante")
+    st.caption(
+        "Complete los datos del estudiante. Las opciones disponibles "
+        "corresponden a las categorías utilizadas por el modelo."
+    )
+
+    with st.expander("🏫 Información del colegio", expanded=True):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            PERIODO = st.number_input(
+                "📅 PERIODO", min_value=2010, max_value=2030, value=2024, step=1
+            )
+            COLE_AREA_UBICACION = st.selectbox(
+                "📍 Área de ubicación", ["RURAL", "URBANA"]
+            )
+            COLE_BILINGUE = st.selectbox("🌎 Colegio bilingüe", ["S", "N"])
+        with col2:
+            COLE_CARACTER = st.selectbox(
+                "🏫 Carácter del colegio",
+                ["ACADÉMICO", "NO APLICA", "TÉCNICO", "TÉCNICO/ACADÉMICO"],
+            )
+            COLE_JORNADA = st.selectbox(
+                "🕐 Jornada",
+                ["COMPLETA", "MAÑANA", "NOCHE", "SABATINA", "TARDE", "UNICA"],
+            )
+            COLE_NATURALEZA = st.selectbox("🏛️ Naturaleza", ["OFICIAL", "NO OFICIAL"])
+        with col3:
+            COLE_SEDE_PRINCIPAL = st.selectbox("🏢 Sede principal", ["S", "N"])
+            COLE_MCPIO_UBICACION = st.text_input(
+                "📍 Municipio del colegio", value="BOGOTÁ"
+            )
+
+    with st.expander("👤 Información personal", expanded=True):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            EDAD = st.slider("🎂 EDAD", min_value=14, max_value=52, value=20, step=1)
+            ESTU_GENERO = st.selectbox("⚧ Género", ["M", "F"])
+            ESTU_NACIONALIDAD = st.text_input("🌎 Nacionalidad", value="COLOMBIA")
+        with col2:
+            ESTU_DEPTO_RESIDE = st.text_input(
+                "📍 Departamento de residencia", value="CUNDINAMARCA"
+            )
+            ESTU_MCPIO_RESIDE = st.text_input(
+                "🏙️ Municipio de residencia", value="BOGOTÁ, D.C."
+            )
+        with col3:
+            ESTU_PAIS_RESIDE = st.text_input("🌎 País de residencia", value="COLOMBIA")
+
+    with st.expander("🏠 Información familiar", expanded=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            FAMI_CUARTOSHOGAR = st.selectbox(
+                "🛏️ Habitaciones del hogar",
+                ["Uno", "Dos", "Tres", "Cuatro", "Cinco o más"],
+            )
+            FAMI_EDUCACIONMADRE = st.selectbox(
+                "👩 Educación de la madre",
+                [
+                    "Ninguno",
+                    "Primaria incompleta",
+                    "Primaria completa",
+                    "Secundaria incompleta",
+                    "Secundaria completa",
+                    "Técnica o tecnológica incompleta",
+                    "Técnica o tecnológica completa",
+                    "Educación profesional incompleta",
+                    "Educación profesional completa",
+                    "Postgrado",
+                ],
+            )
+            FAMI_EDUCACIONPADRE = st.selectbox(
+                "👨 Educación del padre",
+                [
+                    "Ninguno",
+                    "Primaria incompleta",
+                    "Primaria completa",
+                    "Secundaria incompleta",
+                    "Secundaria completa",
+                    "Técnica o tecnológica incompleta",
+                    "Técnica o tecnológica completa",
+                    "Educación profesional incompleta",
+                    "Educación profesional completa",
+                    "Postgrado",
+                ],
+            )
+            FAMI_ESTRATOVIVIENDA = st.selectbox(
+                "🏠 Estrato de vivienda",
+                ["Estrato 1", "Estrato 2", "Estrato 3", "Estrato 4", "Estrato 5", "Estrato 6", "Sin Estrato"],
+            )
+        with col2:
+            FAMI_PERSONASHOGAR = st.number_input(
+                "👨‍👩‍👧 Personas en el hogar", min_value=1, max_value=20, value=3, step=1
+            )
+            FAMI_TIENEAUTOMOVIL = st.selectbox("🚗 Tiene automóvil", ["Si", "No"])
+            FAMI_TIENECOMPUTADOR = st.selectbox("💻 Tiene computador", ["Si", "No"])
+            FAMI_TIENEINTERNET = st.selectbox("🌐 Tiene internet", ["Si", "No"])
+            FAMI_TIENELAVADORA = st.selectbox("🧺 Tiene lavadora", ["Si", "No"])
+
+    datos = [
+        [
+            PERIODO,
+            EDAD,
+            COLE_AREA_UBICACION,
+            COLE_BILINGUE,
+            COLE_CARACTER,
+            COLE_JORNADA,
+            COLE_MCPIO_UBICACION,
+            COLE_NATURALEZA,
+            COLE_SEDE_PRINCIPAL,
+            ESTU_DEPTO_RESIDE,
+            ESTU_GENERO,
+            ESTU_MCPIO_RESIDE,
+            ESTU_NACIONALIDAD,
+            ESTU_PAIS_RESIDE,
+            FAMI_CUARTOSHOGAR,
+            FAMI_EDUCACIONMADRE,
+            FAMI_EDUCACIONPADRE,
+            FAMI_ESTRATOVIVIENDA,
+            FAMI_PERSONASHOGAR,
+            FAMI_TIENEAUTOMOVIL,
+            FAMI_TIENECOMPUTADOR,
+            FAMI_TIENEINTERNET,
+            FAMI_TIENELAVADORA,
+        ]
+    ]
+    columns = [
+        "PERIODO",
+        "EDAD",
+        "COLE_AREA_UBICACION",
+        "COLE_BILINGUE",
+        "COLE_CARACTER",
+        "COLE_JORNADA",
+        "COLE_MCPIO_UBICACION",
+        "COLE_NATURALEZA",
+        "COLE_SEDE_PRINCIPAL",
+        "ESTU_DEPTO_RESIDE",
+        "ESTU_GENERO",
+        "ESTU_MCPIO_RESIDE",
+        "ESTU_NACIONALIDAD",
+        "ESTU_PAIS_RESIDE",
+        "FAMI_CUARTOSHOGAR",
+        "FAMI_EDUCACIONMADRE",
+        "FAMI_EDUCACIONPADRE",
+        "FAMI_ESTRATOVIVIENDA",
+        "FAMI_PERSONASHOGAR",
+        "FAMI_TIENEAUTOMOVIL",
+        "FAMI_TIENECOMPUTADOR",
+        "FAMI_TIENEINTERNET",
+        "FAMI_TIENELAVADORA",
+    ]
+    data = pd.DataFrame(datos, columns=columns)
+    st.success("✅ Información del estudiante lista para procesar.")
+    return data
+
+def csv_upload_handler():
+    st.markdown("### 📂 Cargar archivo CSV")
+    st.markdown(
+        """
+        <div class="info-box">
+        El archivo debe contener las mismas variables utilizadas durante el entrenamiento del modelo. El sistema realizará automáticamente la preparación de los datos.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    uploaded_file = st.file_uploader(
+        "Arrastra tu archivo CSV aquí o haz clic para seleccionarlo", type=["csv"]
+    )
+    data = pd.DataFrame()
+    if uploaded_file is not None:
+        try:
+            data = pd.read_csv(uploaded_file)
+            st.success(
+                f"✅ Archivo cargado correctamente: " f"{len(data)} registros."
+            )
+            with st.expander("👀 Vista previa de los datos", expanded=True):
+                st.dataframe(data.head(10), use_container_width=True)
+        except Exception as e:
+            st.error(f"❌ No fue posible leer el archivo CSV: {e}")
+    return data
+
+def preprocess_data(data, variables):
+    if data.empty:
+        return pd.DataFrame() # Return empty if no data
+
+    data_preparada = data.copy()
+    categorical_cols = [
+        "COLE_AREA_UBICACION",
+        "COLE_BILINGUE",
+        "COLE_CARACTER",
+        "COLE_JORNADA",
+        "COLE_MCPIO_UBICACION",
+        "COLE_NATURALEZA",
+        "COLE_SEDE_PRINCIPAL",
+        "ESTU_DEPTO_RESIDE",
+        "ESTU_GENERO",
+        "ESTU_MCPIO_RESIDE",
+        "ESTU_NACIONALIDAD",
+        "ESTU_PAIS_RESIDE",
+        "FAMI_CUARTOSHOGAR",
+        "FAMI_EDUCACIONMADRE",
+        "FAMI_EDUCACIONPADRE",
+        "FAMI_ESTRATOVIVIENDA",
+        "FAMI_TIENEAUTOMOVIL",
+        "FAMI_TIENECOMPUTADOR",
+        "FAMI_TIENEINTERNET",
+        "FAMI_TIENELAVADORA",
+    ]
+    cols_to_get_dummies = [
+        col for col in categorical_cols if col in data_preparada.columns
+    ]
+    missing_cols = set(categorical_cols) - set(cols_to_get_dummies)
+    if missing_cols:
+        st.error(
+            "❌ Faltan variables categóricas necesarias: "
+            + ", ".join(missing_cols)
+        )
+        st.stop()
+
+    # One Hot Encoding
+    data_preparada = pd.get_dummies(
+        data_preparada, columns=cols_to_get_dummies, drop_first=False, dtype=int
+    )
+    # Mantener exactamente las variables utilizadas por el modelo
+    data_preparada = data_preparada.reindex(columns=variables, fill_value=0)
+    return data_preparada
+
+def make_prediction(modelo, data_preparada):
+    if data_preparada.empty:
+        return np.array([])
+    st.markdown(
+        '<div class="section-title">🤖 Predicción</div>',
+        unsafe_allow_html=True,
+    )
+    try:
+        Y_pred = modelo.predict(data_preparada)
+        return Y_pred
+    except Exception as e:
+        st.error(f"❌ Error al realizar la predicción: {e}")
+        with st.expander("🔧 Información técnica del error"):
+            st.exception(e)
+        return np.array([])
+
+def display_results(original_data, Y_pred):
+    if Y_pred.size == 0:
+        return
+
+    original_data["Prediccion"] = Y_pred
+
+    if len(Y_pred) == 1:
+        prediccion = float(Y_pred[0])
+        st.markdown(
+            f"""
+            <div class="prediction-box">
+            <div class="prediction-label">
+            🎯 PUNT_GLOBAL estimado
+            </div>
+            <div class="prediction-value">
+            {prediccion:.2f}
+            </div>
+            <div class="prediction-description">
+            Predicción generada por el modelo de Machine Learning
+            </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("👥 Registros procesados", len(Y_pred))
+        with col2:
+            st.metric("📈 Promedio predicho", f"{np.mean(Y_pred):.2f}")
+        with col3:
+            st.metric("🏆 Predicción máxima", f"{np.max(Y_pred):.2f}")
+
+    st.markdown(
+        '<div class="section-title">📋 Resultados</div>',
+        unsafe_allow_html=True,
+    )
+    with st.expander("🔎 Ver datos con predicciones", expanded=True):
+        st.dataframe(original_data, use_container_width=True, height=400)
+
+    st.markdown("### 📥 Exportar resultados")
+    csv = original_data.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="⬇️ Descargar predicciones como CSV",
+        data=csv,
+        file_name="predicciones_PUNT_GLOBAL.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
+
+def display_visualizations(data_with_predictions):
+    if data_with_predictions.empty or "Prediccion" not in data_with_predictions.columns:
+        return
+
+    st.markdown(
+        '<div class="section-title">📊 Análisis de predicciones</div>',
+        unsafe_allow_html=True,
+    )
+    tab1, tab2, tab3 = st.tabs(["📈 Distribución", "🏠 Estrato", "🏫 Naturaleza"])
+
+    with tab1:
+        fig1, ax1 = plt.subplots(figsize=(10, 5))
+        sns.histplot(data_with_predictions["Prediccion"], kde=True, ax=ax1)
+        ax1.set_title(
+            "Distribución de las predicciones de PUNT_GLOBAL",
+            fontsize=15,
+            fontweight="bold",
+        )
+        ax1.set_xlabel("PUNT_GLOBAL predicho")
+        ax1.set_ylabel("Frecuencia")
+        ax1.grid(alpha=0.2)
+        st.pyplot(fig1, use_container_width=True)
+        plt.close(fig1)
+
+    with tab2:
+        if "FAMI_ESTRATOVIVIENDA" in data_with_predictions.columns:
+            fig2, ax2 = plt.subplots(figsize=(10, 5))
+            sns.boxplot(
+                x="FAMI_ESTRATOVIVIENDA",
+                y="Prediccion",
+                data=data_with_predictions,
+                ax=ax2,
+            )
+            ax2.set_title(
+                "PUNT_GLOBAL según estrato de vivienda",
+                fontsize=15,
+                fontweight="bold",
+            )
+            ax2.set_xlabel("Estrato")
+            ax2.set_ylabel("PUNT_GLOBAL predicho")
+            plt.xticks(rotation=30)
+            ax2.grid(axis="y", alpha=0.2)
+            st.pyplot(fig2, use_container_width=True)
+            plt.close(fig2)
+        else:
+            st.info(
+                "Esta visualización requiere la variable "
+                "FAMI_ESTRATOVIVIENDA."
+            )
+
+    with tab3:
+        if "COLE_NATURALEZA" in data_with_predictions.columns:
+            fig3, ax3 = plt.subplots(figsize=(10, 5))
+            sns.barplot(
+                x="COLE_NATURALEZA",
+                y="Prediccion",
+                data=data_with_predictions,
+                ax=ax3,
+            )
+            ax3.set_title(
+                "PUNT_GLOBAL según naturaleza del colegio",
+                fontsize=15,
+                fontweight="bold",
+            )
+            ax3.set_xlabel("Naturaleza del colegio")
+            ax3.set_ylabel("PUNT_GLOBAL promedio")
+            ax3.grid(axis="y", alpha=0.2)
+            st.pyplot(fig3, use_container_width=True)
+            plt.close(fig3)
+        else:
+            st.info(
+                "Esta visualización requiere la variable "
+                "COLE_NATURALEZA."
+            )
+
+def display_model_info():
+    st.markdown(
+        '<div class="section-title">🧠 Información del modelo</div>',
+        unsafe_allow_html=True,
+    )
+    with st.expander("📚 Ver información técnica"):
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("**Variable objetivo**")
+            st.code("PUNT_GLOBAL")
+            st.write("**Número de variables utilizadas**")
+            st.write(len(variables))
+        with col2:
+            st.write("**MAE de validación cruzada**")
+            st.code("29.14687")
+            st.write("**Tipo de entrada**")
+            st.write("Datos manuales / archivo CSV")
+        st.info(
+            """
+            El MAE (Mean Absolute Error) representa el error absoluto promedio entre las predicciones del modelo y los valores reales. En este caso, el modelo obtuvo un MAE de aproximadamente 29.15 puntos durante la validación cruzada.
+            """
+        )
+
+def render_footer():
+    st.markdown("---")
+    st.markdown(
+        """
+        <div style="
+            text-align:center; color:#64748b; padding:20px;
+        ">
+        🎓 <b>Predicción de PUNT_GLOBAL</b><br>
+        Sistema académico de Machine Learning
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# --- Main Application Logic ---
+
+data = pd.DataFrame()
+if input_method == "✏️ Ingreso Manual":
+    data = manual_input_form()
 else:
-    st.info("No hay predicciones disponibles para descargar o visualizar. Por favor, genere predicciones primero.")
+    data = csv_upload_handler()
 
-# Recordar medida de error del modelo
+data_preparada = preprocess_data(data, variables)
+Y_pred = make_prediction(modelo, data_preparada)
 
-st.warning("Xgboost MAE de la CV -29.14687")
+if not data_preparada.empty and Y_pred.size > 0:
+    display_results(data, Y_pred)
+    display_visualizations(data) # Pass data with predictions
+    display_model_info()
+else:
+    if input_method == "📂 Subir Archivo CSV":
+        if data.empty:
+            st.info("👆 Carga un archivo CSV para comenzar.")
+        # else: no specific message needed if CSV uploaded but preprocessing failed
+    elif input_method == "✏️ Ingreso Manual":
+        if data.empty:
+            st.info("👆 Completa el formulario para generar una predicción.")
+
+render_footer()
+
+# This warning was for initial debugging/information and can be removed or integrated.
+# For now, it's left as is, but consider if it's still necessary with the new structure.
+# st.warning("Xgboost MAE de la CV -29.14687")
