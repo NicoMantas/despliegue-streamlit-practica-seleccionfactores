@@ -57,10 +57,13 @@ def setup_page():
         section[data-testid="stSidebar"] * { color: white; }
         /* Botones */
         .stDownloadButton button { border-radius: 10px; font-weight: 600; }
-        /* Expander */
-        .streamlit-expanderHeader { font-weight: 650; }
-        /* Asegura que las etiquetas de los inputs sean oscuras en el área principal */
-        .stTextInput label, .stSelectbox label, .stNumberInput label, .stSlider label {
+        /* Asegura que varias etiquetas y texto en el área principal sean oscuros */
+        .streamlit-expanderHeader, /* Encabezados de expanders */
+        .stTextInput label, .stSelectbox label, .stNumberInput label, .stSlider label, /* Etiquetas de inputs */
+        .stRadio > label, .stRadio .st-dk label, /* Etiquetas de radio buttons y sus opciones */
+        h3, h4, h5, h6, /* Encabezados de markdown */
+        [data-testid="stMetricLabel"] /* Etiquetas de st.metric */
+        {
             color: #334155 !important; /* Un gris oscuro para buena legibilidad */
         }
         </style> """,
