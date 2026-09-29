@@ -97,23 +97,41 @@ elif input_method == 'Subir Archivo CSV':
         data = pd.DataFrame() # Empty DataFrame if no file uploaded
 
 #Se realiza la preparación de datos
-data_preparada=data.copy()
 
-#En despliegue drop_first= False
-categorical_cols = [
-    'COLE_AREA_UBICACION', 'COLE_BILINGUE', 'COLE_CARACTER', 'COLE_JORNADA',
-    'COLE_MCPIO_UBICACION', 'COLE_NATURALEZA', 'COLE_SEDE_PRINCIPAL',
-    'ESTU_DEPTO_RESIDE', 'ESTU_GENERO', 'ESTU_MCPIO_RESIDE',
-    'ESTU_NACIONALIDAD', 'ESTU_PAIS_RESIDE', 'FAMI_CUARTOSHOGAR',
-    'FAMI_EDUCACIONMADRE', 'FAMI_EDUCACIONPADRE', 'FAMI_ESTRATOVIVIENDA',
-    'FAMI_TIENEAUTOMOVIL', 'FAMI_TIENECOMPUTADOR', 'FAMI_TIENEINTERNET', 'FAMI_TIENELAVADORA'
-]
-data_preparada = pd.get_dummies(data_preparada, columns=categorical_cols, drop_first=False, dtype=int)
-data_preparada.head()
+if data.empty:
+    st.warning("No hay datos para procesar. Por favor, ingrese datos manualmente o suba un archivo CSV.")
+    data_preparada = pd.DataFrame() # Ensure data_preparada is empty if no data
+else:
+    data_preparada = data.copy()
+
+    #En despliegue drop_first= False
+    categorical_cols = [
+        'COLE_AREA_UBICACION', 'COLE_BILINGUE', 'COLE_CARACTER', 'COLE_JORNADA',
+        'COLE_MCPIO_UBICACION', 'COLE_NATURALEZA', 'COLE_SEDE_PRINCIPAL',
+        'ESTU_DEPTO_RESIDE', 'ESTU_GENERO', 'ESTU_MCPIO_RESIDE',
+        'ESTU_NACIONALIDAD', 'ESTU_PAIS_RESIDE', 'FAMI_CUARTOSHOGAR',
+        'FAMI_EDUCACIONMADRE', 'FAMI_EDUCACIONPADRE', 'FAMI_ESTRATOVIVIENDA',
+        'FAMI_TIENEAUTOMOVIL', 'FAMI_TIENECOMPUTADOR', 'FAMI_TIENEINTERNET', 'FAMI_TIENELAVADORA'
+    ]
+
+    # Filter categorical_cols to only include those actually present in data_preparada
+    cols_to_get_dummies = [col for col in categorical_cols if col in data_preparada.columns]
+
+    if len(cols_to_get_dummies) < len(categorical_cols):
+        missing_cols = set(categorical_cols) - set(cols_to_get_dummies)
+        st.error(f"Error en la preparación de datos: Las siguientes columnas categóricas esperadas no se encontraron en los datos de entrada: {missing_cols}. Asegúrese de que los nombres de las columnas en su CSV (si aplica) o en la entrada manual coinciden con el modelo.")
+    else:
+        st.info("Todas las columnas categóricas necesarias están presentes para el procesamiento.")
+
+    data_preparada = pd.get_dummies(data_preparada, columns=cols_to_get_dummies, drop_first=False, dtype=int)
 
 #Se adicionan las columnas faltantes
-data_preparada=data_preparada.reindex(columns=variables,fill_value=0)
-data_preparada.head()
+if not data_preparada.empty:
+    data_preparada = data_preparada.reindex(columns=variables, fill_value=0)
+    # st.write("Datos preparados para el modelo:")
+    # st.dataframe(data_preparada.head()) # Optional: display prepared data for debugging
+else:
+    st.warning("No se puede reindexar: la trama de datos preparada está vacía.")
 
 #Se normaliza la edad para predecir con Knn, Red, SVM, Reg
 #En los despliegues no se llama fit
@@ -124,15 +142,77 @@ data_preparada.head()
 
 """# **Predicciones**"""
 
-#Hacemos la predicción con el Tree
-Y_pred = modelo.predict(data_preparada)
-print(Y_pred)
+#Hacemos la predicción con el modelo
+if not data_preparada.empty:
+    try:
+        Y_pred = modelo.predict(data_preparada)
+        st.subheader("Predicciones Generadas:")
+        # Optional: Display raw predictions
+        # st.write(Y_pred)
+    except Exception as e:
+        st.error(f"Error al realizar la predicción: {e}")
+        Y_pred = None # Ensure Y_pred is set to None on error
+else:
+    st.warning("No se puede realizar la predicción: la trama de datos preparada está vacía.")
+    Y_pred = None # Ensure Y_pred is defined even if empty
 
-data['Prediccion']=Y_pred
-data.head()
+if not data.empty and Y_pred is not None and len(Y_pred) == len(data):
+    data['Prediccion'] = Y_pred
+    st.subheader("Datos de entrada con Predicciones:")
+    st.dataframe(data)
+else:
+    if data.empty:
+        st.warning("No hay datos originales para adjuntar predicciones.")
+    elif Y_pred is None:
+        st.warning("No se generaron predicciones.")
+    else:
+        st.warning("Error: El número de predicciones no coincide con el número de filas de datos de entrada.")
 
-#Predicciones finales
-data
+# Opciones de descarga y visualización de predicciones
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+if not data.empty and 'Prediccion' in data.columns:
+    st.subheader("Descargar Predicciones")
+    csv = data.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Descargar Predicciones como CSV",
+        data=csv,
+        file_name='predicciones_PUNT_GLOBAL.csv',
+        mime='text/csv',
+    )
+
+    # --- Visualización de Predicciones ---
+    st.subheader("Visualización de Predicciones")
+
+    # Histograma de las predicciones
+    fig1, ax1 = plt.subplots(figsize=(10, 6))
+    sns.histplot(data['Prediccion'], kde=True, ax=ax1)
+    ax1.set_title('Distribución de las Predicciones de PUNT_GLOBAL')
+    ax1.set_xlabel('PUNT_GLOBAL Predicho')
+    ax1.set_ylabel('Frecuencia')
+    st.pyplot(fig1)
+
+    # Si hay suficientes datos y variables categóricas, se pueden añadir más gráficos
+    if len(data) > 1 and 'FAMI_ESTRATOVIVIENDA' in data.columns:
+        fig2, ax2 = plt.subplots(figsize=(10, 6))
+        sns.boxplot(x='FAMI_ESTRATOVIVIENDA', y='Prediccion', data=data, ax=ax2)
+        ax2.set_title('Predicción de PUNT_GLOBAL por Estrato de Vivienda')
+        ax2.set_xlabel('Estrato de Vivienda')
+        ax2.set_ylabel('PUNT_GLOBAL Predicho')
+        plt.xticks(rotation=45)
+        st.pyplot(fig2)
+
+    if len(data) > 1 and 'COLE_NATURALEZA' in data.columns:
+        fig3, ax3 = plt.subplots(figsize=(10, 6))
+        sns.barplot(x='COLE_NATURALEZA', y='Prediccion', data=data, ax=ax3)
+        ax3.set_title('Predicción de PUNT_GLOBAL por Naturaleza del Colegio')
+        ax3.set_xlabel('Naturaleza del Colegio')
+        ax3.set_ylabel('PUNT_GLOBAL Predicho')
+        st.pyplot(fig3)
+
+else:
+    st.info("No hay predicciones disponibles para descargar o visualizar. Por favor, genere predicciones primero.")
 
 # Recordar medida de error del modelo
 
