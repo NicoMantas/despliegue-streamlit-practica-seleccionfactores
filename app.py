@@ -27,7 +27,7 @@ modelo, min_max_scaler, variables = pickle.load(open(filename, 'rb'))
 #modelo
 
 # Display the variables expected by the model to help with data adaptation
-print("Variables expected by the model:")
+print("Variables expected by the models:")
 for var in variables:
     print(var)
 
