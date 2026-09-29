@@ -36,56 +36,65 @@ for var in variables:
 #data = pd.read_csv("videojuegos-datosFuturos.csv")
 #data.head()
 
-#Interfaz gráfica
-
-
-#Se crea interfaz gráfica con streamlit para captura de los datos
-
 import streamlit as st
+import pandas as pd
 
 st.title('Predicción de PUNT_GLOBAL para estudiantes')
 
-PERIODO = st.number_input('PERIODO', min_value=2010, max_value=2024, value=2023, step=1)
-EDAD = st.slider('EDAD', min_value=14, max_value=52, value=20, step=1)
-COLE_AREA_UBICACION = st.selectbox('COLE_AREA_UBICACION', ['RURAL', 'URBANA'])
-COLE_BILINGUE = st.selectbox('COLE_BILINGUE', ['S', 'N'])
-COLE_CARACTER = st.selectbox('COLE_CARACTER', ['ACADÉMICO', 'NO APLICA', 'TÉCNICO', 'TÉCNICO/ACADÉMICO'])
-COLE_JORNADA = st.selectbox('COLE_JORNADA', ['COMPLETA', 'MAÑANA', 'NOCHE', 'SABATINA', 'TARDE', 'UNICA'])
-COLE_MCPIO_UBICACION = st.text_input('COLE_MCPIO_UBICACION', value='BOGOTÁ') # Please adjust options based on your data
-COLE_NATURALEZA = st.selectbox('COLE_NATURALEZA', ['OFICIAL', 'NO OFICIAL'])
-COLE_SEDE_PRINCIPAL = st.selectbox('COLE_SEDE_PRINCIPAL', ['S', 'N'])
-ESTU_DEPTO_RESIDE = st.text_input('ESTU_DEPTO_RESIDE', value='CUNDINAMARCA') # Please adjust options based on your data
-ESTU_GENERO = st.selectbox('ESTU_GENERO', ['M', 'F'])
-ESTU_MCPIO_RESIDE = st.text_input('ESTU_MCPIO_RESIDE', value='BOGOTÁ, D.C.') # Please adjust options based on your data
-ESTU_NACIONALIDAD = st.text_input('ESTU_NACIONALIDAD', value='COLOMBIA') # Please adjust options based on your data
-ESTU_PAIS_RESIDE = st.text_input('ESTU_PAIS_RESIDE', value='COLOMBIA') # Please adjust options based on your data
-FAMI_CUARTOSHOGAR = st.selectbox('FAMI_CUARTOSHOGAR', ['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco o más']) # Please adjust options based on your data
-FAMI_EDUCACIONMADRE = st.text_input('FAMI_EDUCACIONMADRE', value='Ninguno') # Please adjust options based on your data
-FAMI_EDUCACIONPADRE = st.text_input('FAMI_EDUCACIONPADRE', value='Ninguno') # Please adjust options based on your data
-FAMI_ESTRATOVIVIENDA = st.selectbox('FAMI_ESTRATOVIVIENDA', ['Estrato 1', 'Estrato 2', 'Estrato 3', 'Estrato 4', 'Estrato 5', 'Estrato 6', 'Sin Estrato']) # Please adjust options based on your data
-FAMI_PERSONASHOGAR = st.number_input('FAMI_PERSONASHOGAR', min_value=1, max_value=10, value=3, step=1)
-FAMI_TIENEAUTOMOVIL = st.selectbox('FAMI_TIENEAUTOMOVIL', ['Si', 'No'])
-FAMI_TIENECOMPUTADOR = st.selectbox('FAMI_TIENECOMPUTADOR', ['Si', 'No'])
-FAMI_TIENEINTERNET = st.selectbox('FAMI_TIENEINTERNET', ['Si', 'No'])
-FAMI_TIENELAVADORA = st.selectbox('FAMI_TIENELAVADORA', ['Si', 'No'])
+# User choice for input method
+input_method = st.radio("Seleccione el método de entrada de datos:", ('Ingreso Manual', 'Subir Archivo CSV'))
 
+if input_method == 'Ingreso Manual':
+    st.header('Ingreso Manual de Datos')
+    PERIODO = st.number_input('PERIODO', min_value=2010, max_value=2024, value=2023, step=1)
+    EDAD = st.slider('EDAD', min_value=14, max_value=52, value=20, step=1)
+    COLE_AREA_UBICACION = st.selectbox('COLE_AREA_UBICACION', ['RURAL', 'URBANA'])
+    COLE_BILINGUE = st.selectbox('COLE_BILINGUE', ['S', 'N'])
+    COLE_CARACTER = st.selectbox('COLE_CARACTER', ['ACADÉMICO', 'NO APLICA', 'TÉCNICO', 'TÉCNICO/ACADÉMICO'])
+    COLE_JORNADA = st.selectbox('COLE_JORNADA', ['COMPLETA', 'MAÑANA', 'NOCHE', 'SABATINA', 'TARDE', 'UNICA'])
+    COLE_MCPIO_UBICACION = st.text_input('COLE_MCPIO_UBICACION', value='BOGOTÁ')
+    COLE_NATURALEZA = st.selectbox('COLE_NATURALEZA', ['OFICIAL', 'NO OFICIAL'])
+    COLE_SEDE_PRINCIPAL = st.selectbox('COLE_SEDE_PRINCIPAL', ['S', 'N'])
+    ESTU_DEPTO_RESIDE = st.text_input('ESTU_DEPTO_RESIDE', value='CUNDINAMARCA')
+    ESTU_GENERO = st.selectbox('ESTU_GENERO', ['M', 'F'])
+    ESTU_MCPIO_RESIDE = st.text_input('ESTU_MCPIO_RESIDE', value='BOGOTÁ, D.C.')
+    ESTU_NACIONALIDAD = st.text_input('ESTU_NACIONALIDAD', value='COLOMBIA')
+    ESTU_PAIS_RESIDE = st.text_input('ESTU_PAIS_RESIDE', value='COLOMBIA')
+    FAMI_CUARTOSHOGAR = st.selectbox('FAMI_CUARTOSHOGAR', ['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco o más'])
+    FAMI_EDUCACIONMADRE = st.text_input('FAMI_EDUCACIONMADRE', value='Ninguno')
+    FAMI_EDUCACIONPADRE = st.text_input('FAMI_EDUCACIONPADRE', value='Ninguno')
+    FAMI_ESTRATOVIVIENDA = st.selectbox('FAMI_ESTRATOVIVIENDA', ['Estrato 1', 'Estrato 2', 'Estrato 3', 'Estrato 4', 'Estrato 5', 'Estrato 6', 'Sin Estrato'])
+    FAMI_PERSONASHOGAR = st.number_input('FAMI_PERSONASHOGAR', min_value=1, max_value=10, value=3, step=1)
+    FAMI_TIENEAUTOMOVIL = st.selectbox('FAMI_TIENEAUTOMOVIL', ['Si', 'No'])
+    FAMI_TIENECOMPUTADOR = st.selectbox('FAMI_TIENECOMPUTADOR', ['Si', 'No'])
+    FAMI_TIENEINTERNET = st.selectbox('FAMI_TIENEINTERNET', ['Si', 'No'])
+    FAMI_TIENELAVADORA = st.selectbox('FAMI_TIENELAVADORA', ['Si', 'No'])
 
-#Dataframe
-datos = [[PERIODO, EDAD, COLE_AREA_UBICACION, COLE_BILINGUE, COLE_CARACTER,
-          COLE_JORNADA, COLE_MCPIO_UBICACION, COLE_NATURALEZA, COLE_SEDE_PRINCIPAL,
-          ESTU_DEPTO_RESIDE, ESTU_GENERO, ESTU_MCPIO_RESIDE, ESTU_NACIONALIDAD,
-          ESTU_PAIS_RESIDE, FAMI_CUARTOSHOGAR, FAMI_EDUCACIONMADRE, FAMI_EDUCACIONPADRE,
-          FAMI_ESTRATOVIVIENDA, FAMI_PERSONASHOGAR, FAMI_TIENEAUTOMOVIL,
-          FAMI_TIENECOMPUTADOR, FAMI_TIENEINTERNET, FAMI_TIENELAVADORA]]
+    datos = [[PERIODO, EDAD, COLE_AREA_UBICACION, COLE_BILINGUE, COLE_CARACTER,
+              COLE_JORNADA, COLE_MCPIO_UBICACION, COLE_NATURALEZA, COLE_SEDE_PRINCIPAL,
+              ESTU_DEPTO_RESIDE, ESTU_GENERO, ESTU_MCPIO_RESIDE, ESTU_NACIONALIDAD,
+              ESTU_PAIS_RESIDE, FAMI_CUARTOSHOGAR, FAMI_EDUCACIONMADRE, FAMI_EDUCACIONPADRE,
+              FAMI_ESTRATOVIVIENDA, FAMI_PERSONASHOGAR, FAMI_TIENEAUTOMOVIL,
+              FAMI_TIENECOMPUTADOR, FAMI_TIENEINTERNET, FAMI_TIENELAVADORA]]
 
-columns = ['PERIODO', 'EDAD', 'COLE_AREA_UBICACION', 'COLE_BILINGUE', 'COLE_CARACTER',
-           'COLE_JORNADA', 'COLE_MCPIO_UBICACION', 'COLE_NATURALEZA', 'COLE_SEDE_PRINCIPAL',
-           'ESTU_DEPTO_RESIDE', 'ESTU_GENERO', 'ESTU_MCPIO_RESIDE', 'ESTU_NACIONALIDAD',
-           'ESTU_PAIS_RESIDE', 'FAMI_CUARTOSHOGAR', 'FAMI_EDUCACIONMADRE', 'FAMI_EDUCACIONPADRE',
-           'FAMI_ESTRATOVIVIENDA', 'FAMI_PERSONASHOGAR', 'FAMI_TIENEAUTOMOVIL',
-           'FAMI_TIENECOMPUTADOR', 'FAMI_TIENEINTERNET', 'FAMI_TIENELAVADORA']
+    columns = ['PERIODO', 'EDAD', 'COLE_AREA_UBICACION', 'COLE_BILINGUE', 'COLE_CARACTER',
+               'COLE_JORNADA', 'COLE_MCPIO_UBICACION', 'COLE_NATURALEZA', 'COLE_SEDE_PRINCIPAL',
+               'ESTU_DEPTO_RESIDE', 'ESTU_GENERO', 'ESTU_MCPIO_RESIDE', 'ESTU_NACIONALIDAD',
+               'ESTU_PAIS_RESIDE', 'FAMI_CUARTOSHOGAR', 'FAMI_EDUCACIONMADRE', 'FAMI_EDUCACIONPADRE',
+               'FAMI_ESTRATOVIVIENDA', 'FAMI_PERSONASHOGAR', 'FAMI_TIENEAUTOMOVIL',
+               'FAMI_TIENECOMPUTADOR', 'FAMI_TIENEINTERNET', 'FAMI_TIENELAVADORA']
 
-data = pd.DataFrame(datos, columns=columns) #Dataframe con los mismos nombres de variables
+    data = pd.DataFrame(datos, columns=columns)
+
+elif input_method == 'Subir Archivo CSV':
+    st.header('Subir Archivo CSV')
+    uploaded_file = st.file_uploader("Arrastra y suelta tu archivo CSV aquí o haz clic para buscar", type="csv")
+    if uploaded_file is not None:
+        data = pd.read_csv(uploaded_file)
+        st.write("Vista previa de los datos cargados:")
+        st.dataframe(data.head())
+    else:
+        data = pd.DataFrame() # Empty DataFrame if no file uploaded
 
 #Se realiza la preparación de datos
 data_preparada=data.copy()
