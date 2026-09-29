@@ -59,6 +59,10 @@ def setup_page():
         .stDownloadButton button { border-radius: 10px; font-weight: 600; }
         /* Expander */
         .streamlit-expanderHeader { font-weight: 650; }
+        /* Asegura que las etiquetas de los inputs sean oscuras en el área principal */
+        .stTextInput label, .stSelectbox label, .stNumberInput label, .stSlider label {
+            color: #334155 !important; /* Un gris oscuro para buena legibilidad */
+        }
         </style> """,
         unsafe_allow_html=True,
     )
