@@ -108,8 +108,10 @@ data_preparada.head()
 
 #Se normaliza la edad para predecir con Knn, Red, SVM, Reg
 #En los despliegues no se llama fit
-data_preparada[['PUNT_GLOBAL']]= min_max_scaler.transform(data_preparada[['PUNT_GLOBAL']])
-data_preparada.head()
+# La columna 'PUNT_GLOBAL' no debe estar presente en los datos de entrada para la predicción.
+# Si el modelo predice valores escalados, el min_max_scaler se debe usar para el inverse_transform de las predicciones.
+# data_preparada[['PUNT_GLOBAL']]= min_max_scaler.transform(data_preparada[['PUNT_GLOBAL']])
+# data_preparada.head()
 
 """# **Predicciones**"""
 
