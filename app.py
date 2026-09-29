@@ -20,9 +20,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Install Streamlit
-!pip install streamlit
-
 #Cargamos el modelo
 import pickle
 filename = 'modelo-reg-practica.pkl'
